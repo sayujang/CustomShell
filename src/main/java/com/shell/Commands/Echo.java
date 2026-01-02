@@ -1,16 +1,22 @@
 package com.shell.Commands;
 
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.List;
-
+import com.shell.Shell.Context;
 public class Echo implements ShellCommand {
-    public void execute(List<String> arguments, List<String> options) {
-        if (arguments.size()==1)
+    public void execute(List<String> arguments, List<String> options,OutputStream stream, Context context) {
+        PrintStream ps=(PrintStream)stream;
+        if (arguments.size()!=0)
         {
-            System.out.println(arguments.get(0));
-        }
-        else
+        for (int i=0; i<arguments.size()-1;i++)
         {
-            System.out.println("Echo accepts only one argument");
+            ps.print(arguments.get(i)+" ");
         }
+        ps.println(arguments.get(arguments.size()-1));
+    }
+    else{
+        ps.println("");
+    }
     };
 }

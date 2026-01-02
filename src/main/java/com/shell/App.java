@@ -8,5 +8,6 @@ public class App
     {
         Shell sh=new Shell();
         sh.run();
+        // System.out.println(System.getProperty("user.dir"));
     }
 }

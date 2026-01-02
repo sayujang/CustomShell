@@ -1,5 +1,6 @@
 package com.shell;
 
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,12 +15,14 @@ public class Shell {
     String inText = "";
     private Scanner inPipe;
     private static HashMap<String,ShellCommand> commandMapping=new HashMap<>();
+    static final Pattern pattern;
+    //initialize commandmapping
     static 
     {
         ShellCommand echo=new Echo();
         commandMapping.put("echo",echo);
     }
-    static final Pattern pattern;
+    //initialize pattern compilation
     static {
         pattern = Pattern.compile("\"([^\"]*)\"|(-\\S+)|(\\S+)");
     }
@@ -73,7 +76,7 @@ public class Shell {
                     parsedResults.setCommand(matcher.group(3));
                     isFirst = false;
                 } else {
-                    parsedResults.setArgument(matcher.group(1));// for unquoted arguments like file path
+                    parsedResults.setArgument(matcher.group(3));// for unquoted arguments like file path
                 }
             }
         }
@@ -81,25 +84,42 @@ public class Shell {
     }
 
     void processCommand(String command, List<String> arguments, List<String> options) {
-        commandMapping.get(command).execute(arguments, options);
+        commandMapping.get(command).execute(arguments, options,System.out,new Context());
     }
 
     boolean isCommandValid(String command) {
         return commandMapping.containsKey(command);
+    }
+    public class Context{
+        private boolean isExit=false;
+        private String cwd=System.getProperty("user.dir");
+        void setCwd(String cwd)
+        {
+            this.cwd=cwd;
+        }
+        String getCwd()
+        {
+            return cwd;
+        }
     }
 
    
     void run() {
         while (true) {
             System.out.print("$ ");
-            inText = inPipe.nextLine();
+            //if inpipe has no input break the loop 
+            if (inPipe.hasNextLine()){
+            inText = inPipe.nextLine();}
+            else{
+                break;
+            }
             ParsedResults parseResult=eval();
             if (parseResult.getCommand().equalsIgnoreCase("exit")) {
                 break;
             } else if (isCommandValid(parseResult.getCommand())) {
                 processCommand(parseResult.getCommand(),parseResult.getArguments(),parseResult.getOption());
             } else {
-                System.out.printf("%s: command not found %n", inText);
+                System.out.printf("%s: command not found %n", parseResult.getCommand());
             }
         }
     }
