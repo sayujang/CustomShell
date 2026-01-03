@@ -1,6 +1,7 @@
 package com.shell;
 
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -8,7 +9,9 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.shell.Commands.Cd;
 import com.shell.Commands.Echo;
+import com.shell.Commands.Pwd;
 import com.shell.Commands.ShellCommand;
 
 public class Shell {
@@ -16,11 +19,16 @@ public class Shell {
     private Scanner inPipe;
     private static HashMap<String,ShellCommand> commandMapping=new HashMap<>();
     static final Pattern pattern;
+    Context context =new Context();
     //initialize commandmapping
     static 
     {
         ShellCommand echo=new Echo();
         commandMapping.put("echo",echo);
+        ShellCommand pwd=new Pwd();
+        commandMapping.put("pwd",pwd);
+        ShellCommand cd=new Cd();
+        commandMapping.put("cd",cd);
     }
     //initialize pattern compilation
     static {
@@ -84,7 +92,7 @@ public class Shell {
     }
 
     void processCommand(String command, List<String> arguments, List<String> options) {
-        commandMapping.get(command).execute(arguments, options,System.out,new Context());
+        commandMapping.get(command).execute(arguments, options,System.out,context);
     }
 
     boolean isCommandValid(String command) {
@@ -92,12 +100,15 @@ public class Shell {
     }
     public class Context{
         private boolean isExit=false;
-        private String cwd=System.getProperty("user.dir");
-        void setCwd(String cwd)
+        private Path cwd=Path.of(System.getProperty("user.dir"));
+        // static{
+        //     cwd=Path.of(System.getProperty("user.dir"));
+        // }
+        public void setCwd(Path cwd)
         {
             this.cwd=cwd;
         }
-        String getCwd()
+        public Path getCwd()
         {
             return cwd;
         }
@@ -105,6 +116,7 @@ public class Shell {
 
    
     void run() {
+        
         while (true) {
             System.out.print("$ ");
             //if inpipe has no input break the loop 
@@ -117,6 +129,7 @@ public class Shell {
             if (parseResult.getCommand().equalsIgnoreCase("exit")) {
                 break;
             } else if (isCommandValid(parseResult.getCommand())) {
+
                 processCommand(parseResult.getCommand(),parseResult.getArguments(),parseResult.getOption());
             } else {
                 System.out.printf("%s: command not found %n", parseResult.getCommand());

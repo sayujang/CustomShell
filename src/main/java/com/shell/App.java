@@ -9,5 +9,6 @@ public class App
         Shell sh=new Shell();
         sh.run();
         // System.out.println(System.getProperty("user.dir"));
+        // System.out.println(System.getProperty("user.home"));
     }
 }
