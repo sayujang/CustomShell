@@ -4,13 +4,13 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.List;
 
-import com.shell.Shell.Context;
+import com.shell.Context;
+import com.shell.StandardShellIO;
 
 public class Pwd implements ShellCommand{
-    public void execute(List<String> arguments, List<String> options,OutputStream stream, Context context) 
+    public void execute(List<String> arguments, List<String> options,StandardShellIO shellIO, Context context) 
     {
-        PrintStream ps =(PrintStream)stream;
-        ps.println(context.getCwd().toString());
+        shellIO.writeLine(context.getCwd().toString());
     }
     
 }

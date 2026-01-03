@@ -13,13 +13,14 @@ import com.shell.Commands.Cd;
 import com.shell.Commands.Echo;
 import com.shell.Commands.Pwd;
 import com.shell.Commands.ShellCommand;
-
+import com.shell.StandardShellIO;
 public class Shell {
     String inText = "";
     private Scanner inPipe;
     private static HashMap<String,ShellCommand> commandMapping=new HashMap<>();
     static final Pattern pattern;
     Context context =new Context();
+    StandardShellIO shellIO=new StandardShellIO();
     //initialize commandmapping
     static 
     {
@@ -92,27 +93,13 @@ public class Shell {
     }
 
     void processCommand(String command, List<String> arguments, List<String> options) {
-        commandMapping.get(command).execute(arguments, options,System.out,context);
+        commandMapping.get(command).execute(arguments, options,shellIO,context);
     }
 
     boolean isCommandValid(String command) {
         return commandMapping.containsKey(command);
     }
-    public class Context{
-        private boolean isExit=false;
-        private Path cwd=Path.of(System.getProperty("user.dir"));
-        // static{
-        //     cwd=Path.of(System.getProperty("user.dir"));
-        // }
-        public void setCwd(Path cwd)
-        {
-            this.cwd=cwd;
-        }
-        public Path getCwd()
-        {
-            return cwd;
-        }
-    }
+    
 
    
     void run() {

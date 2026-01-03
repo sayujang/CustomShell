@@ -7,13 +7,12 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 
-import com.shell.Shell.Context;
+import com.shell.Context;
+import com.shell.StandardShellIO;
 
 public class Cd implements ShellCommand {
 
-    public void execute(List<String> arguments, List<String> options, OutputStream stream, Context context) {
-
-        PrintStream ps = (PrintStream) stream;
+    public void execute(List<String> arguments, List<String> options, StandardShellIO shellIO, Context context) {
         Path potentialCwd = Path.of("");
 
         if (arguments.size() == 1) {
@@ -31,7 +30,7 @@ public class Cd implements ShellCommand {
         } else if (arguments.size() == 0) {
             potentialCwd = Path.of(System.getProperty("user.home")).normalize();
         } else {
-            ps.println("too many arguments...");
+            shellIO.writeError("too many arguments...");
             return;
         }
         //os filesystem level interactions occurs only here
@@ -42,11 +41,11 @@ public class Cd implements ShellCommand {
             }
             else if (Files.isRegularFile(potentialCwd))
             {
-                ps.printf("%s: Not a directory",potentialCwd.getFileName().toString());
+                shellIO.writeError(potentialCwd.getFileName().toString()+": Not a directory");
             }
             
         } else {
-            ps.println("given path doesn't exists");
+            shellIO.writeError("given path doesn't exists");
             return;
         }
 
