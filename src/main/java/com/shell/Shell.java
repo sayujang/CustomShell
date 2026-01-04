@@ -1,5 +1,6 @@
 package com.shell;
 
+import java.io.File;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -13,27 +14,28 @@ import com.shell.Commands.Cd;
 import com.shell.Commands.Echo;
 import com.shell.Commands.Pwd;
 import com.shell.Commands.ShellCommand;
+import com.shell.Shell.ParsedResults;
 import com.shell.StandardShellIO;
+
 public class Shell {
     String inText = "";
     private Scanner inPipe;
-    private static HashMap<String,ShellCommand> commandMapping=new HashMap<>();
+    private static HashMap<String, ShellCommand> commandMapping = new HashMap<>();
     static final Pattern pattern;
-    Context context =new Context();
-    StandardShellIO shellIO=new StandardShellIO();
-    //initialize commandmapping
-    static 
-    {
-        ShellCommand echo=new Echo();
-        commandMapping.put("echo",echo);
-        ShellCommand pwd=new Pwd();
-        commandMapping.put("pwd",pwd);
-        ShellCommand cd=new Cd();
-        commandMapping.put("cd",cd);
-    }
-    //initialize pattern compilation
+    Context context = new Context();
+    StandardShellIO shellIO = new StandardShellIO();
+    // initialize commandmapping
     static {
-        pattern = Pattern.compile("\"([^\"]*)\"|(-\\S+)|(\\S+)");
+        ShellCommand echo = new Echo();
+        commandMapping.put("echo", echo);
+        ShellCommand pwd = new Pwd();
+        commandMapping.put("pwd", pwd);
+        ShellCommand cd = new Cd();
+        commandMapping.put("cd", cd);
+    }
+    // initialize pattern compilation
+    static {
+        pattern = Pattern.compile("(\"[^\"]*\"|[^\\s\"]+)+");
     }
 
     Shell() {
@@ -41,85 +43,104 @@ public class Shell {
     }
 
     class ParsedResults {
-        String command="";// using string because commands dont change that often
+        String command = "";// using string because commands dont change that often
         List<String> options = new ArrayList<>();
         List<String> arguments = new ArrayList<>();
-        void setOption(String option)
-        {
+        List<String> rawList=new ArrayList<>();
+        void setOption(String option) {
             options.add(option);
         }
-        void setArgument(String argument)
-        {
+
+        void setArgument(String argument) {
             arguments.add(argument);
         }
-        void setCommand(String command)
-        {
-            this.command=command;
-        }
-        String getCommand()
-        {
-            return this.command;
-        }
-        List<String> getOption()
-        {
-            return this.options;
-        }
-        List<String> getArguments()
-        {
-            return this.arguments;
+
+        void setCommand(String command) {
+            this.command = command;
         }
 
+        String getCommand() {
+            return this.command;
+        }
+
+        List<String> getOption() {
+            return this.options;
+        }
+
+        List<String> getArguments() {
+            return this.arguments;
+        }
+        void addToRawList(String token)
+        {
+            rawList.add(token);
+        }
+        List<String> getRawStringList()
+        {
+            return rawList;
+        }
     }
 
     ParsedResults eval() {
-        ParsedResults parsedResults=new ParsedResults();
+        ParsedResults parsedResults = new ParsedResults();
         Matcher matcher = pattern.matcher(inText);
+
         boolean isFirst = true;
         while (matcher.find()) {
-            if (matcher.group(1) != null) {
-                parsedResults.setArgument(matcher.group(1));
-            } else if (matcher.group(2) != null) {
-                parsedResults.setOption(matcher.group(2));
-            } else if (matcher.group(3) != null) {
-                if (isFirst) {
-                    parsedResults.setCommand(matcher.group(3));
-                    isFirst = false;
-                } else {
-                    parsedResults.setArgument(matcher.group(3));// for unquoted arguments like file path
-                }
+            String rawToken = matcher.group(0);
+            String token = rawToken.replace("\"", "");
+
+            if (isFirst) {
+                parsedResults.setCommand(token);
+                isFirst = false;
+            } else if (token.startsWith("-")) {
+                parsedResults.setOption(token);
+            } else {
+                parsedResults.setArgument(token);
             }
+            parsedResults.addToRawList(token);
         }
         return parsedResults;
     }
 
     void processCommand(String command, List<String> arguments, List<String> options) {
-        commandMapping.get(command).execute(arguments, options,shellIO,context);
+        commandMapping.get(command).execute(arguments, options, shellIO, context);
     }
 
-    boolean isCommandValid(String command) {
+    boolean isBuiltIn(String command) {
         return commandMapping.containsKey(command);
     }
-    
 
-   
     void run() {
-        
+
         while (true) {
-            System.out.print("$ ");
-            //if inpipe has no input break the loop 
-            if (inPipe.hasNextLine()){
-            inText = inPipe.nextLine();}
-            else{
+            System.out.printf("%s $ ", context.getCwd().toString());
+            // if inpipe has no input break the loop
+            if (inPipe.hasNextLine()) {
+                inText = inPipe.nextLine();
+            } else {
                 break;
             }
-            ParsedResults parseResult=eval();
+            ParsedResults parseResult = eval();
             if (parseResult.getCommand().equalsIgnoreCase("exit")) {
                 break;
-            } else if (isCommandValid(parseResult.getCommand())) {
+            } else if (isBuiltIn(parseResult.getCommand())) {
 
-                processCommand(parseResult.getCommand(),parseResult.getArguments(),parseResult.getOption());
-            } else {
-                System.out.printf("%s: command not found %n", parseResult.getCommand());
+                processCommand(parseResult.getCommand(), parseResult.getArguments(), parseResult.getOption());
+            } 
+            else {
+                try{
+                    ProcessBuilder pb = new ProcessBuilder(parseResult.getRawStringList());
+                    pb.directory(new File(context.getCwd().toString()));
+                    pb.inheritIO();
+                    Process process=pb.start();//child process throws exception
+                    int exitcode=process.waitFor();
+                    System.out.printf("process exited with exitcode: %d %n",exitcode);
+                }
+                catch(Exception e)
+                {
+                    System.out.printf("%s: command not found %n", parseResult.getCommand());
+                }
+                
             }
         }
     }
