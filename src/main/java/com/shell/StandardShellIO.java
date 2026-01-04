@@ -1,36 +1,44 @@
 package com.shell;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 
 public class StandardShellIO implements ShellIO  {
-    private PrintStream out =System.out;
-    private InputStream in = System.in;
-    private PrintStream errorOut=System.err;
+    private PrintWriter writer;
+    private BufferedReader bf;
+    private PrintWriter errorOut;
+    StandardShellIO(OutputStream out, InputStream in, OutputStream errorOut)
+    {
+        this.writer=new PrintWriter(out,true); //keep true to autoflush no need writer.flush()
+        this.bf=new BufferedReader(new InputStreamReader(in));
+        this.errorOut=new PrintWriter(errorOut,true);
+    }
 
     public void writeLine(String line) {
-        out.println(line);
+        writer.printf(line);
     }
     public void writeError(String error)
     {
-        errorOut.println(error);
+        errorOut.printf(error);
     }
     public String readLine()  
     {
-        String input=null;
-        try(BufferedReader bf= new BufferedReader(new InputStreamReader(in))) 
+        try
         {
-            input=bf.readLine();
+            return bf.readLine();
         }
-        catch(Exception e)
+        catch(IOException e)
         {
-            errorOut.println("Exception occured:"+e.getMessage());
+            errorOut.printf("I/O exception occured:"+e.getMessage());
+            return null;
         }
        
-        return input;
+        
     }
     
 }

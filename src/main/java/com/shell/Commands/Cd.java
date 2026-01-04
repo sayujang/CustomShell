@@ -8,11 +8,12 @@ import java.util.HashMap;
 import java.util.List;
 
 import com.shell.Context;
+import com.shell.ShellIO;
 import com.shell.StandardShellIO;
 
 public class Cd implements ShellCommand {
 
-    public void execute(List<String> arguments, List<String> options, StandardShellIO shellIO, Context context) {
+    public void execute(List<String> arguments, List<String> options, ShellIO shellIO, Context context) {
         Path potentialCwd = Path.of("");
 
         if (arguments.size() == 1) {

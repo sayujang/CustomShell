@@ -1,6 +1,7 @@
 package com.shell;
 
 import java.io.File;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ public class Shell {
     private static HashMap<String, ShellCommand> commandMapping = new HashMap<>();
     static final Pattern pattern;
     Context context = new Context();
-    StandardShellIO shellIO = new StandardShellIO();
+    ShellIO shellIO;
     // initialize commandmapping
     static {
         ShellCommand echo = new Echo();
@@ -38,8 +39,9 @@ public class Shell {
         pattern = Pattern.compile("(\"[^\"]*\"|[^\\s\"]+)+");
     }
 
-    Shell() {
-        this.inPipe = new Scanner(System.in);
+    Shell(InputStream in , OutputStream out, OutputStream errorOut) {
+        this.inPipe = new Scanner(in);
+        this.shellIO=new StandardShellIO(out, in, errorOut);
     }
 
     class ParsedResults {
@@ -130,15 +132,15 @@ public class Shell {
             else {
                 try{
                     ProcessBuilder pb = new ProcessBuilder(parseResult.getRawStringList());
-                    pb.directory(new File(context.getCwd().toString()));
-                    pb.inheritIO();
+                    pb.directory(new File(context.getCwd().toString()));//if not set defaults to dir where jvm starts
+                    pb.inheritIO();//stdin->system.in stdout->system.out
                     Process process=pb.start();//child process throws exception
                     int exitcode=process.waitFor();
-                    System.out.printf("process exited with exitcode: %d %n",exitcode);
+                    shellIO.writeError("process exited with exitcode:"+ exitcode+"%n" );
                 }
                 catch(Exception e)
                 {
-                    System.out.printf("%s: command not found %n", parseResult.getCommand());
+                    shellIO.writeError(parseResult.getCommand()+": command not found %n");
                 }
                 
             }
